@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camera Test</title>
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+  padding: 25px;
+}
+video {
+  width: 100%;
+  max-width: 450px;
+  background: #333;
+  border-radius: 12px;
+}
+button {
+  padding: 12px 20px;
+  margin: 8px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<h2>Camera Test</h2>
+<p>เว็บทดลองกล้องและบันทึกวิดีโอ</p>
+
+<p>
+เมื่อเริ่มบันทึก ภาพจากกล้องจะถูกบันทึก
+คุณสามารถหยุดและตรวจสอบคลิปก่อนดาวน์โหลดได้
+</p>
+
+<video id="camera" autoplay playsinline muted></video>
+
+<p id="status">ยังไม่ได้เปิดกล้อง</p>
+
+<button id="open">อนุญาตและเปิดกล้อง</button>
+<button id="start" disabled>เริ่มบันทึก</button>
+<button id="stop" disabled>หยุดบันทึก</button>
+
+<video id="preview" controls hidden></video>
+<br>
+<button id="download" disabled>ดาวน์โหลดคลิป</button>
+
+<script>
+const camera = document.getElementById("camera");
+const preview = document.getElementById("preview");
+const status = document.getElementById("status");
+
+let stream;
+let recorder;
+let chunks = [];
+let videoURL;
+
+document.getElementById("open").onclick =
+async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+
+    camera.srcObject = stream;
+    status.textContent = "เปิดกล้องแล้ว";
+    document.getElementById("start").disabled = false;
+  } catch (error) {
+    status.textContent = "ไม่สามารถเปิดกล้องได้";
+  }
+};
+
+document.getElementById("start").onclick = () => {
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+
+  recorder.ondataavailable = event => {
+    if (event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  };
+
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, {
+      type: "video/webm"
+    });
+
+    videoURL = URL.createObjectURL(blob);
+    preview.src = videoURL;
+    preview.hidden = false;
+
+    document.getElementById("download").disabled = false;
+    status.textContent = "บันทึกเสร็จแล้ว ตรวจสอบคลิปก่อนดาวน์โหลด";
+  };
+
+  recorder.start();
+
+  status.textContent = "กำลังบันทึกวิดีโอ";
+  document.getElementById("start").disabled = true;
+  document.getElementById("stop").disabled = false;
+};
+
+document.getElementById("stop").onclick = () => {
+  recorder.stop();
+  document.getElementById("stop").disabled = true;
+  document.getElementById("start").disabled = false;
+};
+
+document.getElementById("download").onclick = () => {
+  if (!videoURL) return;
+
+  const link = document.createElement("a");
+  link.href = videoURL;
+  link.download = "camera-test.webm";
+  link.click();
+};
+
+window.addEventListener("beforeunload", () => {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
+});
+</script>
+
+</body>
+</html>
