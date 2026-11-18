@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Camera Test</title>
+</head>
+<body>
+<h2>ทดสอบกล้อง</h2>
+
+<video id="camera" autoplay playsinline
+       width="400"></video>
+
+<br>
+<button id="start">เปิดกล้อง</button>
+<button id="record" disabled>เริ่มบันทึก</button>
+<button id="stop" disabled>หยุดบันทึก</button>
+
+<script>
+const video = document.getElementById("camera");
+const start = document.getElementById("start");
+const record = document.getElementById("record");
+const stop = document.getElementById("stop");
+
+let stream;
+let recorder;
+let chunks = [];
+
+start.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+    video.srcObject = stream;
+    record.disabled = false;
+  } catch (error) {
+    alert("ไม่สามารถเปิดกล้องได้");
+  }
+};
+
+record.onclick = () => {
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+
+  recorder.ondataavailable = e => chunks.push(e.data);
+
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, {type: "video/webm"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "camera-test.webm";
+    a.click();
+  };
+
+  recorder.start();
+  stop.disabled = false;
+};
+
+stop.onclick = () => {
+  recorder.stop();
+  stop.disabled = true;
+};
+
+</script>
+</body>
+</html>
